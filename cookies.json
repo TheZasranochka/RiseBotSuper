@@ -1,0 +1,157 @@
+[
+  {
+    "name": "xcuid",
+    "value": "e3eb2358-d687-48ac-846b-7c8a36403513",
+    "domain": ".youdo.com",
+    "path": "/",
+    "expires": -1,
+    "size": 41,
+    "httpOnly": true,
+    "secure": true,
+    "session": true
+  },
+  {
+    "name": "xguid",
+    "value": "f51fd70a78fbec507a0ec2bc060f0ebe",
+    "domain": "youdo.com",
+    "path": "/",
+    "expires": -1,
+    "size": 37,
+    "httpOnly": false,
+    "secure": false,
+    "session": true
+  },
+  {
+    "name": "xidx",
+    "value": "ebe0f060cb2ce0a705cebf87a07df15f",
+    "domain": ".youdo.com",
+    "path": "/",
+    "expires": -1,
+    "size": 36,
+    "httpOnly": true,
+    "secure": true,
+    "session": true
+  },
+  {
+    "name": "_utm_ydmd",
+    "value": "6673778928",
+    "domain": ".youdo.com",
+    "path": "/",
+    "expires": -1,
+    "size": 19,
+    "httpOnly": true,
+    "secure": true,
+    "session": true
+  },
+  {
+    "name": "_utm_yf",
+    "value": "0ec2bc060f0ebea78fbec507af51fd70",
+    "domain": ".youdo.com",
+    "path": "/",
+    "expires": -1,
+    "size": 39,
+    "httpOnly": true,
+    "secure": true,
+    "session": true
+  },
+  {
+    "name": "_ym_d",
+    "value": "1729534066",
+    "domain": ".youdo.com",
+    "path": "/",
+    "expires": -1,
+    "size": 15,
+    "httpOnly": true,
+    "secure": true,
+    "session": true
+  },
+  {
+    "name": "_ym_d",
+    "value": "1718650327",
+    "domain": ".yastatic.net",
+    "path": "/",
+    "expires": -1,
+    "size": 15,
+    "httpOnly": true,
+    "secure": true,
+    "session": true
+  },
+  {
+    "name": "_ym_isad",
+    "value": "2",
+    "domain": ".youdo.com",
+    "path": "/",
+    "expires": -1,
+    "size": 9,
+    "httpOnly": true,
+    "secure": true,
+    "session": true
+  },
+  {
+    "name": "_ym_uid",
+    "value": "1720201492194923165",
+    "domain": ".yandex.ru",
+    "path": "/",
+    "expires": -1,
+    "size": 26,
+    "httpOnly": true,
+    "secure": true,
+    "session": true
+  },
+  {
+    "name": "_ym_uid",
+    "value": "171865032768189646",
+    "domain": ".yastatic.net",
+    "path": "/",
+    "expires": -1,
+    "size": 25,
+    "httpOnly": true,
+    "secure": true,
+    "session": true
+  },
+  {
+    "name": "_ym_uid",
+    "value": "1729534066876026405",
+    "domain": ".youdo.com",
+    "path": "/",
+    "expires": -1,
+    "size": 26,
+    "httpOnly": true,
+    "secure": true,
+    "session": true
+  },
+  {
+    "name": "_ym_visorc",
+    "value": "w",
+    "domain": ".youdo.com",
+    "path": "/",
+    "expires": -1,
+    "size": 11,
+    "httpOnly": true,
+    "secure": true,
+    "session": true
+  },
+  {
+    "name": "amcuid",
+    "value": "5127913881718749446",
+    "domain": ".yandex.ru",
+    "path": "/",
+    "expires": -1,
+    "size": 25,
+    "httpOnly": true,
+    "secure": true,
+    "session": true
+  },
+  {
+    "name": "ydo_uid",
+    "value": "Bby4VmcWmG8bm1L4AxR0Ag==",
+    "domain": ".youdo.com",
+    "path": "/",
+    "expires": -1,
+    "size": 31,
+    "httpOnly": true,
+    "secure": true,
+    "session": true
+  }
+
+]
