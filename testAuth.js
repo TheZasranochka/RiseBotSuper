@@ -1,5 +1,11 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
+const TelegramBot = require('node-telegram-bot-api');
+
+const token = '7545014405:AAGs6i9oAYngrtuvrdb37n9YYxqSQzPBQro'; // Замените на ваш токен бота
+const bot = new TelegramBot(token, { polling: true });
+
+let isRunning = false; // Флаг для проверки, работает ли бот
 
 async function saveCookies(page) {
     const cookies = await page.cookies();
@@ -67,25 +73,20 @@ async function fetchTasks(page) {
     return tasks;
 }
 
-async function sendReply(task, page) {
+async function sendReply(task, page, chatId) {
     try {
         console.log(`Отправка отклика на задание: ${task.title} | Ссылка: ${task.link}`);
         await page.goto(task.link, { waitUntil: 'networkidle2' });
 
-        // Изменённый селектор для кнопки "Откликнуться"
         await page.waitForSelector('#TaskContainer > div.layout-task__column.layout-task__column--left.i-reminder > div.b-task-blocks.b-task-item-base-info.js-task-item-base-info > div.b-task-blocks_wrapper > div.b-task-reactions.js-task-block-footer > div.js-task-item-actions > div > a', { timeout: 10000 });
         await page.click('#TaskContainer > div.layout-task__column.layout-task__column--left.i-reminder > div.b-task-blocks.b-task-item-base-info.js-task-item-base-info > div.b-task-blocks_wrapper > div.b-task-reactions.js-task-block-footer > div.js-task-item-actions > div > a');
         await page.waitForSelector('#DialogsQueue .wrapper__1144f.white__d3db2', { timeout: 10000 });
 
-        // Селектор для извлечения цены из заказа
         await page.waitForSelector('#TaskContainer > div.layout-task__column.layout-task__column--left.i-reminder > div.b-task-blocks.b-task-item-base-info.js-task-item-base-info > div.b-task-block.b-task-block__header > div.b-task-block__header__price > span > span > span', { timeout: 10000 });
         const taskPriceText = await page.$eval('#TaskContainer > div.layout-task__column.layout-task__column--left.i-reminder > div.b-task-blocks.b-task-item-base-info.js-task-item-base-info > div.b-task-block.b-task-block__header > div.b-task-block__header__price > span > span > span', el => el.innerText);
-
-        // Извлекаем числовое значение из строки и удаляем лишние символы
         const taskPrice = parseFloat(taskPriceText.replace(/[^\d]/g, '')); // Удаляем все символы кроме цифр
         const offerPrice = Math.floor(taskPrice * 0.8); // На 20% меньше
 
-        // Изменённый селектор для ввода цены
         const priceInputSelector = '#DialogsQueue > div > div > div > div > div > div:nth-child(2) > div > div > div.inputWrapper__6df22 > div.wrapper__1144f.white__d3db2 > div:nth-child(1) > div.container__fc85b > div > input';
         const priceInput = await page.$(priceInputSelector);
 
@@ -98,7 +99,7 @@ async function sendReply(task, page) {
         }
 
         const messageInputSelector = '#DialogsQueue > div > div > div > div > div > div:nth-child(3) > div > div > div > div.wrapper__1144f.white__d3db2 > div:nth-child(1) > div > div:nth-child(1) > div > textarea';
-        await page.waitForSelector(messageInputSelector, { timeout: 10000 }); // Ожидаем, что элемент появится
+        await page.waitForSelector(messageInputSelector, { timeout: 10000 });
         await page.type(messageInputSelector, 'Всё в поисках достойного исполнителя? Хватит сёрфить! Ты уже нашел его. \n' +
             ' \n' +
             'Rise Studio - многопрофильная студия, готовая взять любой Ваш заказ под свое начало. Стильно, доступно, а главное в кратчайшие сроки - Всё это неотъемлемые условия нашей работы! \n' +
@@ -109,27 +110,59 @@ async function sendReply(task, page) {
             '\n' +
             'Не плати оверпрайс, заказывай у Rise!');
 
-        // Нажимаем кнопку отправки сообщения
         await page.click('#DialogsQueue .actions__629b0.actions__c7727 button');
         console.log(`Отклик отправлен на задание: ${task.title}`);
+        await bot.sendMessage(chatId, `Отклик отправлен на задание: ${task.title}| Ссылка: ${task.link}`);
     } catch (error) {
         console.error(`Ошибка при отправке отклика на задание: ${task.title} | Ссылка: ${task.link}`, error);
     }
 }
 
-// Основная функция для запуска обработки откликов
-async function main() {
-    const browser = await puppeteer.launch({ headless: false, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+async function main(chatId) {
+    if (isRunning) {
+        console.log("Процесс уже запущен!");
+        return;
+    }
+
+    isRunning = true; // Устанавливаем флаг, что процесс запущен
+    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
 
     await loadCookies(page); // Загружаем куки перед началом работы с заданиями
     const tasks = await fetchTasks(page); // получаем задания с сайта
 
     for (const task of tasks) {
-        await sendReply(task, page);
+        await sendReply(task, page, chatId);
     }
 
     await browser.close();
+    isRunning = false; // Сбрасываем флаг, процесс завершен
 }
 
-main().catch(error => console.error('Ошибка в основном процессе:', error));
+// Команды для управления ботом
+bot.onText(/\/start/, (msg) => {
+    const chatId = msg.chat.id;
+    bot.sendMessage(chatId, 'Бот запущен. Используйте команды /run и /stop для управления.');
+});
+
+bot.onText(/\/run/, (msg) => {
+    const chatId = msg.chat.id;
+    if (isRunning) {
+        bot.sendMessage(chatId, 'Процесс уже запущен!');
+    } else {
+        bot.sendMessage(chatId, 'Запуск процесса...');
+        main(chatId).catch(error => bot.sendMessage(chatId, 'Ошибка в основном процессе: ' + error.message));
+    }
+});
+
+bot.onText(/\/stop/, (msg) => {
+    const chatId = msg.chat.id;
+    if (isRunning) {
+        bot.sendMessage(chatId, 'Остановка процесса... (функция остановки не реализована)');
+        // Можно реализовать логику для остановки процесса, если необходимо
+        isRunning = false;
+    } else {
+        bot.sendMessage(chatId, 'Процесс не запущен.');
+    }
+});
+
