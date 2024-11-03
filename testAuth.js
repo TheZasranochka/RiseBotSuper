@@ -6,6 +6,7 @@ const token = '7545014405:AAGs6i9oAYngrtuvrdb37n9YYxqSQzPBQro'; // Замени�
 const bot = new TelegramBot(token, { polling: true });
 
 let isRunning = false; // Флаг для проверки, работает ли бот
+const repliedTasks = new Set();
 
 async function saveCookies(page) {
     const cookies = await page.cookies();
@@ -38,8 +39,8 @@ async function fetchTasks(page) {
 
     if (!(await checkAuthorization(page))) {
         console.log("Пожалуйста, авторизуйтесь в браузере...");
-        await page.waitForTimeout(10000); // Подождите, чтобы пользователь мог авторизоваться вручную
-        await saveCookies(page); // Сохраняем куки после авторизации
+        await page.setDefaultTimeout(10000);
+        await saveCookies(page);
     }
 
     await page.goto('https://youdo.com/tasks-all-opened-all', { waitUntil: 'networkidle2' });
@@ -69,8 +70,11 @@ async function fetchTasks(page) {
         return tasks;
     });
 
-    console.log(`Всего найдено заданий: ${tasks.length}`);
-    return tasks;
+    // Фильтруем задачи, на которые уже был отклик
+    const newTasks = tasks.filter(task => !repliedTasks.has(task.link));
+
+    console.log(`Найдено новых заданий: ${newTasks.length}`);
+    return newTasks;
 }
 
 async function sendReply(task, page, chatId) {
@@ -85,7 +89,11 @@ async function sendReply(task, page, chatId) {
         await page.waitForSelector('#TaskContainer > div.layout-task__column.layout-task__column--left.i-reminder > div.b-task-blocks.b-task-item-base-info.js-task-item-base-info > div.b-task-block.b-task-block__header > div.b-task-block__header__price > span > span > span', { timeout: 10000 });
         const taskPriceText = await page.$eval('#TaskContainer > div.layout-task__column.layout-task__column--left.i-reminder > div.b-task-blocks.b-task-item-base-info.js-task-item-base-info > div.b-task-block.b-task-block__header > div.b-task-block__header__price > span > span > span', el => el.innerText);
         const taskPrice = parseFloat(taskPriceText.replace(/[^\d]/g, '')); // Удаляем все символы кроме цифр
-        const offerPrice = Math.floor(taskPrice * 0.8); // На 20% меньше
+        let offerPrice = Math.floor(taskPrice * 0.8); // На 20% меньше
+
+        if (offerPrice < 1000) {
+            offerPrice = 1000;
+        }
 
         const priceInputSelector = '#DialogsQueue > div > div > div > div > div > div:nth-child(2) > div > div > div.inputWrapper__6df22 > div.wrapper__1144f.white__d3db2 > div:nth-child(1) > div.container__fc85b > div > input';
         const priceInput = await page.$(priceInputSelector);
@@ -114,7 +122,7 @@ async function sendReply(task, page, chatId) {
         console.log(`Отклик отправлен на задание: ${task.title}`);
         await bot.sendMessage(chatId, `Отклик отправлен на задание: ${task.title}| Ссылка: ${task.link}`);
     } catch (error) {
-        console.error(`Ошибка при отправке отклика на задание: ${task.title} | Ссылка: ${task.link}`, error);
+        console.error(`Ошибка при отправке отклика на задание: ${task.title} | Ссылка: ${task.link}, error`);
     }
 }
 
@@ -125,20 +133,61 @@ async function main(chatId) {
     }
 
     isRunning = true; // Устанавливаем флаг, что процесс запущен
-    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const browser = await puppeteer.launch({ headless: false, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
 
     await loadCookies(page); // Загружаем куки перед началом работы с заданиями
-    const tasks = await fetchTasks(page); // получаем задания с сайта
+    const tasks = await fetchTasks(page); // Получаем задания с сайта
 
-    for (const task of tasks) {
-        await sendReply(task, page, chatId);
+    if (tasks.length === 0) {
+        console.log("Заданий не найдено. Ожидание перед перезапуском...");
+        await page.setDefaultTimeout(30 * 1000); // Ждём 5 минут перед перезапуском
+    } else {
+        for (const task of tasks) {
+            await sendReply(task, page, chatId);
+        }
     }
 
     await browser.close();
     isRunning = false; // Сбрасываем флаг, процесс завершен
+
+    // Перезапускаем функцию после паузы
+    setTimeout(() => {
+        main(chatId);
+    }, 15 * 1000); // 1 минута ожидания перед следующим запуском
+}
+async function selectCategories(page) {
+    try {
+        // Переход на основную категорию
+        await page.waitForSelector('#Layout > div > div.TasksRedesignPage_content__yUbel > div.TasksRedesignPage_categories__eixSG.TasksRedesignPage_categoriesSticky__giBGF > ul > li.Categories_item__Vxa16.Categories_all__v5GB0 > div > span', { timeout: 10000 });
+        await page.click('#Layout > div > div.TasksRedesignPage_content__yUbel > div.TasksRedesignPage_categories__eixSG.TasksRedesignPage_categoriesSticky__giBGF > ul > li.Categories_item__Vxa16.Categories_all__v5GB0 > div > span');
+
+        // Ожидание и выбор подкатегории "Виртуальный помощник"
+        await page.waitForSelector('div.Checkbox_container__7ExBm.Categories_checkbox__HdW_K.Checkbox_mobileTransform__W6JhP > input[value="1048576"]', { timeout: 10000 });
+        await page.click('div.Checkbox_container__7ExBm.Categories_checkbox__HdW_K.Checkbox_mobileTransform__W6JhP > input[value="1048576"] + span');
+        console.log("Категория 'Виртуальный помощник' выбрана");
+    } catch (error) {
+        console.error('Ошибка при выборе категорий:', error);
+    }
 }
 
+// Запуск функции выбора категорий по команде /disine
+bot.onText(/\/disine/, async (msg) => {
+    const chatId = msg.chat.id;
+    const browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    const page = await browser.newPage();
+
+    // Переход на главную страницу перед выбором категории
+    await page.goto('https://youdo.com/tasks-all-opened-all', { waitUntil: 'networkidle2' });
+
+    await selectCategories(page);
+
+    await browser.close();
+    bot.sendMessage(chatId, "Категория 'Дизайн' выбрана.");
+});
 // Команды для управления ботом
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
@@ -165,4 +214,3 @@ bot.onText(/\/stop/, (msg) => {
         bot.sendMessage(chatId, 'Процесс не запущен.');
     }
 });
-
