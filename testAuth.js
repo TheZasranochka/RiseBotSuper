@@ -2,10 +2,10 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const TelegramBot = require('node-telegram-bot-api');
 
-const token = '7545014405:AAGs6i9oAYngrtuvrdb37n9YYxqSQzPBQro'; // Замените на ваш токен бота
+const token = '7545014405:AAGs6i9oAYngrtuvrdb37n9YYxqSQzPBQro';
 const bot = new TelegramBot(token, { polling: true });
 
-let isRunning = false; // Флаг для проверки, работает ли бот
+let isRunning = false;
 const repliedTasks = new Set();
 
 async function saveCookies(page) {
@@ -88,8 +88,8 @@ async function sendReply(task, page, chatId) {
 
         await page.waitForSelector('#TaskContainer > div.layout-task__column.layout-task__column--left.i-reminder > div.b-task-blocks.b-task-item-base-info.js-task-item-base-info > div.b-task-block.b-task-block__header > div.b-task-block__header__price > span > span > span', { timeout: 10000 });
         const taskPriceText = await page.$eval('#TaskContainer > div.layout-task__column.layout-task__column--left.i-reminder > div.b-task-blocks.b-task-item-base-info.js-task-item-base-info > div.b-task-block.b-task-block__header > div.b-task-block__header__price > span > span > span', el => el.innerText);
-        const taskPrice = parseFloat(taskPriceText.replace(/[^\d]/g, '')); // Удаляем все символы кроме цифр
-        let offerPrice = Math.floor(taskPrice * 0.8); // На 20% меньше
+        const taskPrice = parseFloat(taskPriceText.replace(/[^\d]/g, ''));
+        let offerPrice = Math.floor(taskPrice * 0.8); 
 
         if (offerPrice < 1000) {
             offerPrice = 1000;
@@ -99,9 +99,9 @@ async function sendReply(task, page, chatId) {
         const priceInput = await page.$(priceInputSelector);
 
         if (priceInput) {
-            await priceInput.click({ clickCount: 3 }); // Выделяем текущее значение
-            await priceInput.press('Backspace'); // Удаляем текущее значение
-            await priceInput.type(offerPrice.toString()); // Вводим новую цену
+            await priceInput.click({ clickCount: 3 });
+            await priceInput.press('Backspace');
+            await priceInput.type(offerPrice.toString());
         } else {
             console.error('Поле ввода цены не найдено');
         }
@@ -132,16 +132,16 @@ async function main(chatId) {
         return;
     }
 
-    isRunning = true; // Устанавливаем флаг, что процесс запущен
+    isRunning = true; 
     const browser = await puppeteer.launch({ headless: false, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
 
-    await loadCookies(page); // Загружаем куки перед началом работы с заданиями
-    const tasks = await fetchTasks(page); // Получаем задания с сайта
+    await loadCookies(page); 
+    const tasks = await fetchTasks(page); 
 
     if (tasks.length === 0) {
         console.log("Заданий не найдено. Ожидание перед перезапуском...");
-        await page.setDefaultTimeout(30 * 1000); // Ждём 5 минут перед перезапуском
+        await page.setDefaultTimeout(30 * 1000); 
     } else {
         for (const task of tasks) {
             await sendReply(task, page, chatId);
@@ -149,20 +149,19 @@ async function main(chatId) {
     }
 
     await browser.close();
-    isRunning = false; // Сбрасываем флаг, процесс завершен
-
-    // Перезапускаем функцию после паузы
+    isRunning = false; 
+    
     setTimeout(() => {
         main(chatId);
-    }, 15 * 1000); // 1 минута ожидания перед следующим запуском
+    }, 15 * 1000);
 }
 async function selectCategories(page) {
     try {
-        // Переход на основную категорию
+
         await page.waitForSelector('#Layout > div > div.TasksRedesignPage_content__yUbel > div.TasksRedesignPage_categories__eixSG.TasksRedesignPage_categoriesSticky__giBGF > ul > li.Categories_item__Vxa16.Categories_all__v5GB0 > div > span', { timeout: 10000 });
         await page.click('#Layout > div > div.TasksRedesignPage_content__yUbel > div.TasksRedesignPage_categories__eixSG.TasksRedesignPage_categoriesSticky__giBGF > ul > li.Categories_item__Vxa16.Categories_all__v5GB0 > div > span');
 
-        // Ожидание и выбор подкатегории "Виртуальный помощник"
+
         await page.waitForSelector('div.Checkbox_container__7ExBm.Categories_checkbox__HdW_K.Checkbox_mobileTransform__W6JhP > input[value="1048576"]', { timeout: 10000 });
         await page.click('div.Checkbox_container__7ExBm.Categories_checkbox__HdW_K.Checkbox_mobileTransform__W6JhP > input[value="1048576"] + span');
         console.log("Категория 'Виртуальный помощник' выбрана");
@@ -171,7 +170,7 @@ async function selectCategories(page) {
     }
 }
 
-// Запуск функции выбора категорий по команде /disine
+
 bot.onText(/\/disine/, async (msg) => {
     const chatId = msg.chat.id;
     const browser = await puppeteer.launch({
@@ -180,7 +179,7 @@ bot.onText(/\/disine/, async (msg) => {
     });
     const page = await browser.newPage();
 
-    // Переход на главную страницу перед выбором категории
+
     await page.goto('https://youdo.com/tasks-all-opened-all', { waitUntil: 'networkidle2' });
 
     await selectCategories(page);
@@ -188,7 +187,7 @@ bot.onText(/\/disine/, async (msg) => {
     await browser.close();
     bot.sendMessage(chatId, "Категория 'Дизайн' выбрана.");
 });
-// Команды для управления ботом
+
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
     bot.sendMessage(chatId, 'Бот запущен. Используйте команды /run и /stop для управления.');
